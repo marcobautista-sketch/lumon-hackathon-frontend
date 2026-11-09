@@ -1,3 +1,7 @@
+# Base del enunciado + lo que agrega Vite + lo que anade el equipo.
+# IMPORTANTE: .env y variantes nunca se suben (claves publicas tampoco,
+# van en Vercel). CP6 castiga claves en el repositorio con 0.
+
 # Logs
 logs
 *.log
@@ -7,16 +11,23 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
+# Build / deps
+node_modules/
+dist/
 dist-ssr
 *.local
 
-# Secretos / variables de entorno locales (nunca se suben)
+# Variables de entorno (nunca se suben; solo .env.example)
 .env
-.env.local
+.env.*
+!.env.example
 
-# Editor directories and files
+# Hosts
+.vercel/
+.netlify/
+.wrangler/
+
+# Editor y sistema
 .vscode/*
 !.vscode/extensions.json
 .idea

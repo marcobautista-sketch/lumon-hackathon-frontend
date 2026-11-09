@@ -1,0 +1,11 @@
+{
+  "teamCode": "TEAM-000",
+  "teamName": "Pendiente de registro",
+  "deployUrl": "https://",
+  "storageProvider": "CLOUDINARY",
+  "integrantes": [
+    { "nombre": "Marco Bautista", "codigo": "202310546" },
+    { "nombre": "Fabiana Gomez", "codigo": "202310563" },
+    { "nombre": "Juancarlos Vergara", "codigo": "202120598" }
+  ]
+}

@@ -1,18 +1,43 @@
-import { Routes, Route } from 'react-router-dom'
-
-function Home() {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-slate-950 text-slate-100">
-      <h1 className="text-3xl font-semibold">Lumon</h1>
-      <p className="text-slate-400">hola mundo</p>
-    </div>
-  )
-}
+import { Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './auth/AuthContext'
+import { PrivateRoute } from './auth/PrivateRoute'
+import { ErrorBoundary } from './app/ErrorBoundary'
+import { HomePage } from './pages/HomePage'
+import { LoginPage } from './pages/LoginPage'
+import { RegisterPage } from './pages/RegisterPage'
+import { EstadoPage } from './pages/EstadoPage'
+import { NotFoundPage } from './pages/NotFoundPage'
+import { NoPermissionPage } from './pages/NoPermissionPage'
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-    </Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/sin-permiso" element={<NoPermissionPage />} />
+
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <HomePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/estado"
+            element={
+              <PrivateRoute>
+                <EstadoPage />
+              </PrivateRoute>
+            }
+          />
+
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }

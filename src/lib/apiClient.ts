@@ -9,54 +9,79 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string
 
-// El SHA del commit, inyectado por Vite (ver vite.config.ts). El backend lo
-// exige en cada request del navegador que NO sea localhost; mandarlo
-// siempre es inofensivo y evita tener que acordarse en el momento del deploy.
+// SHA del commit, inyectado por Vite en build time (ver vite.config.ts).
+// El backend exige la cabecera X-Lumon-Build en cada request desde produccion;
+// mandarla siempre es inofensivo y evita tener que acordarse en el deploy.
 const BUILD_SHA = __LUMON_BUILD_SHA__
 
 interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
-  /** Pasar false solo para endpoints publicos (login/register/refresh). */
+  /** Pasar false solo para endpoints publicos: register, login, refresh. */
   auth?: boolean
+  /** Si se pasa, se concatena a los headers. Content-Type lo decide apiFetch. */
+  extraHeaders?: Record<string, string>
 }
 
-// --- Refresh con un solo vuelo en curso --------------------------------
-// "Si varias requests reciben TOKEN_EXPIRED a la vez, hagan UN SOLO refresh
-// y compartanlo." Si dos refresh llegan con el mismo refreshToken (ya
-// consumido), el backend revoca la sesion COMPLETA. Por eso todo el mundo
-// espera a la misma promesa en vez de llamar a /auth/refresh por su cuenta.
-let refreshInFlight: Promise<TokenPair> | null = null
+// --- Refresh coordinado entre requests Y entre pestañas --------------------
+// Regla del enunciado: "con dos o mas pestanas abiertas, el vencimiento del
+// token nunca provoca REFRESH_REUSED". Dos niveles de coordinacion:
+//
+//   1. Dentro de una pestana: todas las requests que detectan TOKEN_EXPIRED
+//      a la vez comparten una sola promesa (refreshInFlight).
+//   2. Entre pestañas del mismo origen: Web Locks API (navigator.locks).
+//      Solo una pestana a la vez entra a la seccion critica; las demas
+//      esperan. Al entrar, cada pestana RELEE el refresh token actual de
+//      localStorage, por si otra pestana ya lo roto mientras esperaba.
+let refreshInFlight: Promise<void> | null = null
 
-async function refreshAccessToken(): Promise<TokenPair> {
+async function refreshAccessToken(): Promise<void> {
   if (refreshInFlight) return refreshInFlight
 
   refreshInFlight = (async () => {
-    // Releer de localStorage por si OTRA pestaña ya roto el token mientras
-    // esta esperaba.
-    const refreshToken = getStoredRefreshToken()
-    if (!refreshToken) throw new ApiError(401, emptyError('NO_REFRESH_TOKEN'))
+    // Si el navegador no tiene Web Locks (no deberia pasar en Chrome/Firefox
+    // modernos, pero fallback por si acaso), hacemos el refresh igual sin
+    // coordinacion entre pestanas.
+    const runCriticalSection = async () => {
+      // RELEER del storage: otra pestana pudo haber hecho el refresh mientras
+      // esta esperaba el lock. Si el token en memoria ya es nuevo, no refresh.
+      const storedRefreshToken = getStoredRefreshToken()
+      if (!storedRefreshToken) {
+        throw new ApiError(401, emptyError('NO_REFRESH_TOKEN'))
+      }
+      if (!isAccessTokenExpired()) {
+        // Otra pestana ya lo refresco; no hay nada que hacer.
+        return
+      }
 
-    const res = await fetch(`${API_BASE}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Lumon-Build': BUILD_SHA },
-      body: JSON.stringify({ refreshToken }),
-    })
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Lumon-Build': BUILD_SHA,
+        },
+        body: JSON.stringify({ refreshToken: storedRefreshToken }),
+      })
 
-    if (!res.ok) {
-      const body = await safeJson(res)
-      // REFRESH_REUSED u otro 401: la sesion ya esta muerta, hay que
-      // mandar al usuario de vuelta al login.
-      clearSession()
-      throw new ApiError(res.status, body)
+      if (!res.ok) {
+        const body = await safeJson(res)
+        // REFRESH_REUSED, TOKEN_INVALID, etc. la sesion ya esta muerta.
+        clearSession()
+        throw new ApiError(res.status, body)
+      }
+
+      const tokens = (await res.json()) as TokenPair
+      saveTokens(tokens)
     }
 
-    const tokens = (await res.json()) as TokenPair
-    saveTokens(tokens)
-    return tokens
+    if (typeof navigator !== 'undefined' && navigator.locks) {
+      await navigator.locks.request('lumon.refresh', runCriticalSection)
+    } else {
+      await runCriticalSection()
+    }
   })()
 
   try {
-    return await refreshInFlight
+    await refreshInFlight
   } finally {
     refreshInFlight = null
   }
@@ -83,44 +108,47 @@ async function safeJson(res: Response): Promise<ApiErrorBody> {
 
 /**
  * fetch con: base URL, header X-Lumon-Build, Authorization automatico,
- * refresh transparente si el access token esta vencido, y errores tipados
- * (ApiError) en vez de tener que parsear el JSON a mano en cada llamada.
+ * refresh transparente coordinado entre pestanas via Web Locks, y errores
+ * tipados (ApiError) en vez de parsear JSON en cada llamada.
+ *
+ * Usen SIEMPRE esta funcion en vez de fetch() directo, o se pierde la
+ * coordinacion del refresh y una recarga con dos pestanas abiertas puede
+ * disparar REFRESH_REUSED y cerrar la sesion del equipo entero.
  */
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  const { auth = true, body, headers, ...rest } = options
+  const { auth = true, body, headers, extraHeaders, ...rest } = options
 
+  // Refresh preventivo si sabemos que esta por vencer.
   if (auth && isAccessTokenExpired() && getStoredRefreshToken()) {
     await refreshAccessToken()
   }
 
-  const finalHeaders: HeadersInit = {
+  const buildHeaders = (): HeadersInit => ({
     'X-Lumon-Build': BUILD_SHA,
     ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...(auth && getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
+    ...extraHeaders,
     ...headers,
-  }
+  })
 
   const doFetch = () =>
     fetch(`${API_BASE}${path}`, {
       ...rest,
-      headers: finalHeaders,
+      headers: buildHeaders(),
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
 
   let res = await doFetch()
 
-  // Reintento de una sola vez: el token expiro justo antes de que llegara
-  // la respuesta (la ventana es corta, 180s por defecto).
+  // Reintento uno a uno: token expiro justo entre el chequeo y la llegada
+  // de la respuesta (ventana corta, 180s por defecto). Solo si el codigo
+  // de error es TOKEN_EXPIRED, no cualquier 401.
   if (res.status === 401 && auth) {
-    const errBody = await safeJson(res.clone())
+    const clone = res.clone()
+    const errBody = await safeJson(clone)
     if (errBody.error === 'TOKEN_EXPIRED' && getStoredRefreshToken()) {
       await refreshAccessToken()
-      finalHeaders['Authorization' as keyof HeadersInit] = `Bearer ${getAccessToken()}`
-      res = await fetch(`${API_BASE}${path}`, {
-        ...rest,
-        headers: { ...finalHeaders, Authorization: `Bearer ${getAccessToken()}` },
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-      })
+      res = await doFetch()
     }
   }
 
