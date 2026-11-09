@@ -1,7 +1,7 @@
 {
-  "teamCode": "TEAM-000",
-  "teamName": "Pendiente de registro",
-  "deployUrl": "https://",
+  "teamCode": "TEAM-040",
+  "teamName": "Pendiente",
+  "deployUrl": "https://lumon-hackathon-frontend.vercel.app",
   "storageProvider": "CLOUDINARY",
   "integrantes": [
     { "nombre": "Marco Bautista", "codigo": "202310546" },
