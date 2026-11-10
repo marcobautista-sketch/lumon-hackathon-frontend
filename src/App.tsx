@@ -16,6 +16,7 @@ const FilesPage = lazy(() => import('./files/FilesPage'))
 const RefinePage = lazy(() => import('./refine/RefinePage'))
 const RefinerEditPage = lazy(() => import('./pages/RefinerEditPage').then((m) => ({ default: m.RefinerEditPage })))
 const BadgeEditorPage = lazy(() => import('./media/BadgeEditorPage'))
+const NewIncidentPage = lazy(() => import('./media/NewIncidentPage'))
 const IncidentsPage = lazy(() => import('./pages/IncidentsPage').then((m) => ({ default: m.IncidentsPage })))
 const RefinersPage = lazy(() => import('./pages/RefinersPage').then((m) => ({ default: m.RefinersPage })))
 
@@ -92,6 +93,26 @@ export default function App() {
                 </Suspense>
               </PrivateRoute>
             }
+          />
+
+          <Route
+
+            path="/incidents/new"
+
+            element={
+
+              <PrivateRoute requires="incidents:create">
+
+                <Suspense fallback={<PageFallback />}>
+
+                  <NewIncidentPage />
+
+                </Suspense>
+
+              </PrivateRoute>
+
+            }
+
           />
 
           <Route path="*" element={<NotFoundPage />} />

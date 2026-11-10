@@ -42,7 +42,10 @@ export function IncidentsPage() {
       <div className="mx-auto max-w-3xl space-y-4">
         <header className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Reportes de incidencia</h1>
-          <Link to="/" className="rounded border border-slate-700 px-3 py-1 text-sm">Volver al inicio</Link>
+          <div className="flex gap-2">
+            <Link to="/incidents/new" className="rounded bg-slate-200 px-3 py-1 text-sm text-slate-900">Nuevo reporte</Link>
+            <Link to="/" className="rounded border border-slate-700 px-3 py-1 text-sm">Volver al inicio</Link>
+          </div>
         </header>
         <p aria-live="polite" className="text-sm text-slate-400">{loading ? 'Cargando…' : data ? `${data.totalElements} reporte(s).` : ''}</p>
         {result.error && !loading && <p role="alert" className="text-red-300">{result.error}</p>}

@@ -80,20 +80,46 @@ export function confirmTicket(ticketId: string, url: string): Promise<Media> {
 }
 
 // Config publica del storage: SOLO cloud name y preset (nunca el API secret).
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string | undefined
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string | undefined
+// Primero las variables VITE_*; si el despliegue no las tiene, se usa la
+// configuracion que el equipo registro en Lumon (GET /integrations/status ->
+// storage.config), que es la misma y ya esta verificada por el backend.
+interface CloudinaryConfig {
+  cloudName: string
+  uploadPreset: string
+}
+let configPromise: Promise<CloudinaryConfig> | null = null
+
+function getCloudinaryConfig(): Promise<CloudinaryConfig> {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string | undefined
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string | undefined
+  if (cloudName && uploadPreset) return Promise.resolve({ cloudName, uploadPreset })
+  configPromise ??= apiFetch<{ storage: { config: { cloudName?: string; uploadPreset?: string } | null } }>(
+    '/integrations/status',
+  )
+    .then((s) => {
+      const c = s.storage.config
+      if (!c?.cloudName || !c.uploadPreset) throw new Error('El storage del equipo no está configurado.')
+      return { cloudName: c.cloudName, uploadPreset: c.uploadPreset }
+    })
+    .catch((err: unknown) => {
+      configPromise = null // permitir reintentar
+      throw err
+    })
+  return configPromise
+}
 
 /**
  * Sube el blob a Cloudinary con XMLHttpRequest: fetch no informa progreso de
  * subida, XHR si (xhr.upload.onprogress). Devuelve la secure_url SIN
  * transformaciones, que es la que hay que confirmar.
  */
-export function uploadToCloudinary(
+export async function uploadToCloudinary(
   blob: Blob,
   ticket: MediaTicket,
   onProgress: (fraction: number) => void,
   signal: AbortSignal,
 ): Promise<string> {
+  const { cloudName: CLOUD_NAME, uploadPreset: UPLOAD_PRESET } = await getCloudinaryConfig()
   return new Promise((resolve, reject) => {
     if (!CLOUD_NAME || !UPLOAD_PRESET) {
       reject(new Error('Falta configurar VITE_CLOUDINARY_CLOUD_NAME / VITE_CLOUDINARY_UPLOAD_PRESET.'))
