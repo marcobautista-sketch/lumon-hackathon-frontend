@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyMe = useCallback((me: MeResponse) => {
     setState({
       ready: true,
-      user: me.user,
+      user: { id: me.id, email: me.email, displayName: me.displayName },
       team: me.team,
       role: me.role,
       permissions: me.permissions,

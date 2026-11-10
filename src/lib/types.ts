@@ -23,9 +23,11 @@ export interface Clearance {
   grantedAt: string | null
 }
 
-/** Respuesta de GET /auth/me (y usada en el AuthContext). */
+/** Respuesta de GET /auth/me. OJO: campos de usuario estan en la RAIZ, no envueltos. */
 export interface MeResponse {
-  user: User
+  id: number
+  email: string
+  displayName: string
   team: Team
   role: Role
   /** La interfaz se decide por permissions, NO por role.code. */
