@@ -270,12 +270,7 @@ export function RefinersPage() {
 
         <ul aria-busy={loading} className={`space-y-3 transition-opacity ${loading ? 'opacity-60' : ''}`}>
           {data?.content.map((refiner) => (
-            <RefinerCard
-              key={refiner.id}
-              refiner={refiner}
-              canEdit={hasPermission('refiners:write')}
-              canUpload={hasPermission('media:upload')}
-            />
+            <RefinerCard key={refiner.id} refiner={refiner} canEdit={hasPermission('refiners:write')} />
           ))}
         </ul>
 
@@ -314,10 +309,9 @@ export function RefinersPage() {
 interface RefinerCardProps {
   refiner: Refiner
   canEdit: boolean
-  canUpload: boolean
 }
 
-function RefinerCard({ refiner, canEdit, canUpload }: RefinerCardProps) {
+function RefinerCard({ refiner, canEdit }: RefinerCardProps) {
   const profileUrl = safeHttpUrl(refiner.profileUrl)
   const badgeUrl = safeHttpUrl(refiner.badge?.url)
 
@@ -359,11 +353,6 @@ function RefinerCard({ refiner, canEdit, canUpload }: RefinerCardProps) {
           {canEdit && (
             <Link to={`/refiners/${refiner.id}/edit`} className="text-sky-300 underline">
               Editar expediente
-            </Link>
-          )}
-          {canUpload && (
-            <Link to={`/refiners/${refiner.id}/badge`} className="text-sky-300 underline">
-              Cambiar fotocheck
             </Link>
           )}
         </div>

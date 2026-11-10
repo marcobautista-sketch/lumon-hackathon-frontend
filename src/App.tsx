@@ -14,6 +14,8 @@ const FilesPage = lazy(() => import('./files/FilesPage'))
 // Code splitting: las paginas del piso no entran al bundle inicial de /login (CP6).
 // La grilla del CP2 tampoco (lo pide el enunciado explicitamente).
 const RefinePage = lazy(() => import('./refine/RefinePage'))
+const RefinerEditPage = lazy(() => import('./pages/RefinerEditPage').then((m) => ({ default: m.RefinerEditPage })))
+const IncidentsPage = lazy(() => import('./pages/IncidentsPage').then((m) => ({ default: m.IncidentsPage })))
 const RefinersPage = lazy(() => import('./pages/RefinersPage').then((m) => ({ default: m.RefinersPage })))
 
 function PageFallback() {
@@ -55,6 +57,27 @@ export default function App() {
               <PrivateRoute requires="refiners:read">
                 <Suspense fallback={<PageFallback />}>
                   <RefinersPage />
+                </Suspense>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/refiners/:id/edit"
+            element={
+              <PrivateRoute requires="refiners:write">
+                <Suspense fallback={<PageFallback />}>
+                  <RefinerEditPage />
+                </Suspense>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/incidents"
+            element={
+              <PrivateRoute requires="incidents:read">
+                <Suspense fallback={<PageFallback />}>
+                  <IncidentsPage />
                 </Suspense>
               </PrivateRoute>
             }
