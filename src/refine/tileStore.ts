@@ -89,7 +89,6 @@ export class TileStore {
   private timer: ReturnType<typeof setTimeout> | null = null
   private listeners = new Set<() => void>()
   private wanted = new Set<string>()
-  private disposed = false
   /** Se incrementa con cada cambio; sirve como "version" para React. */
   revision = 0
   /** Momento hasta el que estamos frenados por 429 (para mostrarlo en UI). */
@@ -192,11 +191,15 @@ export class TileStore {
     this.emit()
   }
 
+  /**
+   * Cancela todo lo pendiente al salir de la grilla. No "mata" el store: en
+   * desarrollo React (StrictMode) desmonta y vuelve a montar, y el store tiene
+   * que seguir funcionando despues. La cache se conserva.
+   */
   dispose() {
-    this.disposed = true
     if (this.timer) clearTimeout(this.timer)
+    this.timer = null
     for (const [k, job] of this.jobs) this.cancel(k, job)
-    this.listeners.clear()
   }
 
   private request(tr: number, tc: number, pinned: boolean): Job {
@@ -240,7 +243,6 @@ export class TileStore {
   }
 
   private pump() {
-    if (this.disposed) return
     while (this.active < MAX_CONCURRENT && this.queue.length > 0) {
       const now = Date.now()
       // 429 activo: no se pide nada hasta que pase Retry-After.
