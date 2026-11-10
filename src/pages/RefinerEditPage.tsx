@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { onLumonEvent } from '../events/eventStream'
 import { apiFetch } from '../lib/apiClient'
 import { listDepartments, type Department, type Refiner } from '../lib/refiners'
 import { isAbortError, withRetry } from '../lib/retry'
@@ -42,6 +43,17 @@ export function RefinerEditPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const [conflict, setConflict] = useState<Refiner | null>(null)
+  // Si llega refiner.updated de este expediente mientras se edita, avisar antes de guardar.
+  const [remoteVersion, setRemoteVersion] = useState<number | null>(null)
+  useEffect(
+    () =>
+      onLumonEvent((e) => {
+        if (e.event !== 'refiner.updated') return
+        const d = e.data as { id?: number; version?: number }
+        if (d.id === refinerId && typeof d.version === 'number') setRemoteVersion(d.version)
+      }),
+    [refinerId],
+  )
 
   useEffect(() => {
     if (!Number.isInteger(refinerId) || refinerId < 1) return
@@ -154,6 +166,11 @@ export function RefinerEditPage() {
     <Shell>
       <h1 className="text-2xl font-semibold">Editar expediente: {base.fullName}</h1>
       <p className="text-sm text-slate-400">Versión {base.version}</p>
+      {remoteVersion !== null && remoteVersion > base.version && (
+        <p role="alert" className="rounded border border-amber-700 bg-amber-950 p-2 text-amber-200">
+          Otra persona modificó este expediente (versión {remoteVersion}) mientras lo editan. Si guardan, verán el conflicto para elegir qué conservar.
+        </p>
+      )}
       <form onSubmit={onSubmit} className="space-y-3">
         <label className="block">
           <span className="text-sm text-slate-300">Título</span>
