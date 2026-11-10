@@ -11,7 +11,9 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [generalError, setGeneralError] = useState<string | null>(null)
+  const [generalError, setGeneralError] = useState<string | null>(
+    params.get("motivo") === "sesion-revocada" ? "Tu sesión fue revocada. Vuelve a iniciar sesión." : null,
+  )
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   // Si ya hay sesion, no mostrar el login (ni parpadear).

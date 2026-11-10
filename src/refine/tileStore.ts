@@ -181,6 +181,11 @@ export class TileStore {
     this.pump()
   }
 
+  /** stream.reset: todo lo cacheado puede estar viejo -> volver a pedirlo. */
+  invalidateAll() {
+    this.invalidate([...this.cache.values()].map((t) => [t.tileRow, t.tileCol] as [number, number]))
+  }
+
   /** Marca celdas como refinadas en la cache, sin volver a pedir la grilla. */
   markRefined(cells: { r: number; c: number }[], binChar: string) {
     for (const { r, c } of cells) {

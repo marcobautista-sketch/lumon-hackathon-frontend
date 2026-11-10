@@ -24,6 +24,8 @@ import {
 import { findGroup, isScary, type Group } from './groups'
 import { Grid } from './Grid'
 import { TileStore } from './tileStore'
+import { onLumonEvent } from '../events/eventStream'
+import type { Progress } from './types'
 
 const BIN_LABEL: Record<Bin, string> = { WO: 'WO', FC: 'FC', DR: 'DR', MA: 'MA' }
 const BIN_COLOR: Record<Bin, string> = {
@@ -213,6 +215,25 @@ function RefineView({ initialFile, rules }: { initialFile: DataFile; rules: Rule
   const [stuckIntent, setStuckIntent] = useState<Intent | null>(null)
   const [dragHover, setDragHover] = useState<Bin | null>(null)
   const [showComplete, setShowComplete] = useState(initialFile.status === 'COMPLETE')
+
+  // CP5: la grilla refleja los eventos sin recargar.
+  useEffect(
+    () =>
+      onLumonEvent((evt) => {
+        const d = (evt.data ?? {}) as { fileId?: number; cells?: Cell[]; bin?: Bin; progress?: Progress }
+        if (evt.event === 'refinement.created' && d.fileId === initialFile.id && d.cells && d.bin) {
+          store.markRefined(d.cells, BIN_CHAR[d.bin])
+          const progress = d.progress
+          if (progress) setFile((f) => ({ ...f, progress }))
+        } else if (evt.event === 'file.completed' && d.fileId === initialFile.id) {
+          setFile((f) => ({ ...f, status: 'COMPLETE' }))
+          setShowComplete(true)
+        } else if (evt.event === 'stream.reset') {
+          store.invalidateAll()
+        }
+      }),
+    [store, initialFile.id],
+  )
 
   const send = useCallback(
     async (intent: Intent) => {

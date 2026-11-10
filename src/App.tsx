@@ -9,6 +9,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { EstadoPage } from './pages/EstadoPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { NoPermissionPage } from './pages/NoPermissionPage'
+import { LiveEvents } from './events/LiveEvents'
 const FilesPage = lazy(() => import('./files/FilesPage'))
 
 // Code splitting: las paginas del piso no entran al bundle inicial de /login (CP6).
@@ -117,6 +118,7 @@ export default function App() {
 
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <LiveEvents />
       </AuthProvider>
     </ErrorBoundary>
   )
