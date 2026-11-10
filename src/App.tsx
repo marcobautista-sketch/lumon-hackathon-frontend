@@ -9,7 +9,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { EstadoPage } from './pages/EstadoPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { NoPermissionPage } from './pages/NoPermissionPage'
-import { FilesListPage } from './pages/FilesListPage'
+const FilesPage = lazy(() => import('./files/FilesPage'))
 
 // Code splitting: las paginas del piso no entran al bundle inicial de /login (CP6).
 // La grilla del CP2 tampoco (lo pide el enunciado explicitamente).
@@ -37,7 +37,7 @@ export default function App() {
           <Route path="/estado" element={<PrivateRoute><EstadoPage /></PrivateRoute>} />
 
           {/* CP2 */}
-          <Route path="/files" element={<PrivateRoute requires="files:read"><FilesListPage /></PrivateRoute>} />
+          <Route path="/files" element={<PrivateRoute requires="files:read"><Suspense fallback={<PageFallback />}><FilesPage /></Suspense></PrivateRoute>} />
           <Route
             path="/files/:id/refine"
             element={
