@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+/* --- CP2: celdas que dan miedo -------------------------------------------
+   Tiemblan segun su nivel de tremor (t1 < t2 < t3). Solo se anima transform,
+   que no fuerza layout. Con prefers-reduced-motion NO hay movimiento: se
+   distinguen por color, negrita y subrayado. */
+@keyframes lumon-tremble {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(var(--amp), calc(var(--amp) * -1)); }
+  50% { transform: translate(calc(var(--amp) * -1), var(--amp)); }
+  75% { transform: translate(var(--amp), var(--amp)); }
+}
+.scary {
+  display: inline-block;
+  animation: lumon-tremble var(--dur) linear infinite;
+}
+.scary.t1 { --amp: 0.5px; --dur: 700ms; }
+.scary.t2 { --amp: 1px; --dur: 400ms; }
+.scary.t3 { --amp: 1.5px; --dur: 220ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scary {
+    animation: none;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+}

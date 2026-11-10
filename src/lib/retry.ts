@@ -56,3 +56,23 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
   }
   throw lastError
 }
+
+/** Errores transitorios que vale la pena reintentar: 503, 429 y fallos de red. */
+export function isTransient(err: unknown): boolean {
+  if (err instanceof ApiError) return err.status === 503 || err.status === 429
+  return err instanceof TypeError
+}
+
+/** Espera antes del intento `attempt`: Retry-After si vino, si no exponencial con jitter (hasta 8 s). */
+export function backoffDelay(attempt: number, err: unknown): number {
+  if (err instanceof ApiError && err.retryAfter) return err.retryAfter * 1000
+  const base = Math.min(8000, 500 * 2 ** attempt)
+  return base / 2 + Math.random() * (base / 2)
+}
+
+/** Mensaje legible para mostrar en la UI. */
+export function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) return err.body.message || `Error ${err.status}`
+  if (err instanceof TypeError) return 'No se pudo conectar con Lumon. Revisa tu conexión.'
+  return 'Ocurrió un error inesperado.'
+}
