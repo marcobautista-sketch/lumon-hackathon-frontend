@@ -9,6 +9,8 @@ import { RegisterPage } from './pages/RegisterPage'
 import { EstadoPage } from './pages/EstadoPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { NoPermissionPage } from './pages/NoPermissionPage'
+import { FilesListPage } from './pages/FilesListPage'
+import { RefinePage } from './pages/RefinePage'
 
 // Code splitting: las paginas del piso no entran al bundle inicial de /login (CP6).
 const RefinersPage = lazy(() => import('./pages/RefinersPage').then((m) => ({ default: m.RefinersPage })))
@@ -30,22 +32,12 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/sin-permiso" element={<NoPermissionPage />} />
 
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <HomePage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/estado"
-            element={
-              <PrivateRoute>
-                <EstadoPage />
-              </PrivateRoute>
-            }
-          />
+          <Route path="/" element={<PrivateRoute><HomePage /></PrivateRoute>} />
+          <Route path="/estado" element={<PrivateRoute><EstadoPage /></PrivateRoute>} />
+
+          {/* CP2 */}
+          <Route path="/files" element={<PrivateRoute requires="files:read"><FilesListPage /></PrivateRoute>} />
+          <Route path="/files/:id/refine" element={<PrivateRoute requires="files:refine"><RefinePage /></PrivateRoute>} />
 
           <Route
             path="/refiners"
