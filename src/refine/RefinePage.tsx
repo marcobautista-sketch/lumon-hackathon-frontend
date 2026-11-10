@@ -25,6 +25,8 @@ import { findGroup, isScary, type Group } from './groups'
 import { Grid } from './Grid'
 import { TileStore } from './tileStore'
 import { onLumonEvent } from '../events/eventStream'
+import { useFloorSocket } from '../hooks/useFloorSocket'
+import { FloorPresence } from '../components/floor/FloorPresence'
 import type { Progress } from './types'
 
 const BIN_LABEL: Record<Bin, string> = { WO: 'WO', FC: 'FC', DR: 'DR', MA: 'MA' }
@@ -335,14 +337,35 @@ function RefineView({ initialFile, rules }: { initialFile: DataFile; rules: Rule
     return [...m.values()]
   }
 
+  // CP5: piso compartido por WebSocket (una conexion por pestaña con la grilla abierta).
+  const floor = useFloorSocket(initialFile.id)
+  const { sendCursor } = floor
+  useEffect(() => {
+    sendCursor(focus.r, focus.c)
+  }, [focus, sendCursor])
+
   const onRefine = useCallback(
     (bin: Bin) => {
       if (!canRefine || !group || group.noise || intentRef.current) return
       const intent: Intent = { key: crypto.randomUUID(), bin, cells: group.cells }
       intentRef.current = intent
-      void send(intent)
+      const first = group.cells[0]
+      void (async () => {
+        // Antes de llevar el grupo a una caja se reserva. Si el WebSocket no esta
+        // disponible, se refina igual (el backend responde 409 GROUP_CLAIMED si otro lo tiene).
+        if (floor.status === 'open') {
+          const res = await floor.claim(first.r, first.c).catch(() => null)
+          if (res && !res.ok && res.reason === 'HELD') {
+            intentRef.current = null
+            setMessage({ kind: 'error', text: `${res.holder?.displayName ?? 'Otro refinador'} tiene reservado ese grupo. Elige otro.` })
+            return
+          }
+        }
+        await send(intent)
+        try { floor.release() } catch { /* sin piso: nada que liberar */ }
+      })()
     },
-    [canRefine, group, send],
+    [canRefine, group, send, floor],
   )
 
   const discardStuck = () => {
@@ -391,6 +414,7 @@ function RefineView({ initialFile, rules }: { initialFile: DataFile; rules: Rule
           />
 
           <aside className="space-y-3">
+            <FloorPresence floor={floor} />
             <section className="rounded border border-slate-800 bg-slate-900 p-3 text-sm" aria-live="polite">
               <h2 className="mb-1 font-semibold">Grupo seleccionado</h2>
               {searching && <p>Buscando el grupo completo…</p>}
