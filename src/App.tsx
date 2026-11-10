@@ -15,6 +15,7 @@ const FilesPage = lazy(() => import('./files/FilesPage'))
 // La grilla del CP2 tampoco (lo pide el enunciado explicitamente).
 const RefinePage = lazy(() => import('./refine/RefinePage'))
 const RefinerEditPage = lazy(() => import('./pages/RefinerEditPage').then((m) => ({ default: m.RefinerEditPage })))
+const BadgeEditorPage = lazy(() => import('./pages/BadgeEditorPage').then((m) => ({ default: m.BadgeEditorPage })))
 const IncidentsPage = lazy(() => import('./pages/IncidentsPage').then((m) => ({ default: m.IncidentsPage })))
 const RefinersPage = lazy(() => import('./pages/RefinersPage').then((m) => ({ default: m.RefinersPage })))
 
@@ -68,6 +69,16 @@ export default function App() {
               <PrivateRoute requires="refiners:write">
                 <Suspense fallback={<PageFallback />}>
                   <RefinerEditPage />
+                </Suspense>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/refiners/:id/badge"
+            element={
+              <PrivateRoute requires="media:upload">
+                <Suspense fallback={<PageFallback />}>
+                  <BadgeEditorPage />
                 </Suspense>
               </PrivateRoute>
             }

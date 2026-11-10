@@ -355,6 +355,11 @@ function RefinerCard({ refiner, canEdit }: RefinerCardProps) {
               Editar expediente
             </Link>
           )}
+          {canEdit && (
+            <Link to={`/refiners/${refiner.id}/badge`} className="text-sky-300 underline">
+              Cambiar fotocheck
+            </Link>
+          )}
         </div>
       </div>
     </li>
