@@ -9,10 +9,10 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string
 
-// SHA del commit, inyectado por Vite en build time (ver vite.config.ts).
-// El backend exige la cabecera X-Lumon-Build en cada request desde produccion;
-// mandarla siempre es inofensivo y evita tener que acordarse en el deploy.
-const BUILD_SHA = __LUMON_BUILD_SHA__
+// SHA del commit, inyectado por Vite en build time via la env var
+// VITE_LUMON_BUILD_SHA (ver vite.config.ts). El backend exige la cabecera
+// X-Lumon-Build en cada request desde produccion.
+const BUILD_SHA = (import.meta.env.VITE_LUMON_BUILD_SHA as string | undefined) ?? 'dev'
 
 interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   body?: unknown

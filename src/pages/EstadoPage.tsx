@@ -70,7 +70,7 @@ export function EstadoPage() {
         <header className="space-y-1">
           <h1 className="text-2xl font-semibold">Estado</h1>
           <p className="text-sm text-slate-400">
-            Build desplegado: <code className="rounded bg-slate-800 px-1">{__LUMON_BUILD_SHA__}</code>
+            Build desplegado: <code className="rounded bg-slate-800 px-1">{(import.meta.env.VITE_LUMON_BUILD_SHA as string | undefined) ?? 'dev'}</code>
           </p>
           {team && (
             <p className="text-sm text-slate-400">
