@@ -15,7 +15,7 @@ const FilesPage = lazy(() => import('./files/FilesPage'))
 // La grilla del CP2 tampoco (lo pide el enunciado explicitamente).
 const RefinePage = lazy(() => import('./refine/RefinePage'))
 const RefinerEditPage = lazy(() => import('./pages/RefinerEditPage').then((m) => ({ default: m.RefinerEditPage })))
-const BadgeEditorPage = lazy(() => import('./pages/BadgeEditorPage').then((m) => ({ default: m.BadgeEditorPage })))
+const BadgeEditorPage = lazy(() => import('./media/BadgeEditorPage'))
 const IncidentsPage = lazy(() => import('./pages/IncidentsPage').then((m) => ({ default: m.IncidentsPage })))
 const RefinersPage = lazy(() => import('./pages/RefinersPage').then((m) => ({ default: m.RefinersPage })))
 
