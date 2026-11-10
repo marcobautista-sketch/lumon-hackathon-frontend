@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { PrivateRoute } from './auth/PrivateRoute'
@@ -8,6 +9,17 @@ import { RegisterPage } from './pages/RegisterPage'
 import { EstadoPage } from './pages/EstadoPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { NoPermissionPage } from './pages/NoPermissionPage'
+
+// Code splitting: las paginas del piso no entran al bundle inicial de /login (CP6).
+const RefinersPage = lazy(() => import('./pages/RefinersPage').then((m) => ({ default: m.RefinersPage })))
+
+function PageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">
+      <p aria-live="polite">Cargando…</p>
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -31,6 +43,17 @@ export default function App() {
             element={
               <PrivateRoute>
                 <EstadoPage />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/refiners"
+            element={
+              <PrivateRoute requires="refiners:read">
+                <Suspense fallback={<PageFallback />}>
+                  <RefinersPage />
+                </Suspense>
               </PrivateRoute>
             }
           />

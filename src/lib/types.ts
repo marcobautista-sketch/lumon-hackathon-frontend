@@ -61,12 +61,15 @@ export interface ApiErrorBody {
 export class ApiError extends Error {
   readonly status: number
   readonly body: ApiErrorBody
+  /** Segundos de la cabecera Retry-After (429 / 503), si vino. */
+  readonly retryAfter: number | null
 
-  constructor(status: number, body: ApiErrorBody) {
+  constructor(status: number, body: ApiErrorBody, retryAfter: number | null = null) {
     super(body.message)
     this.name = 'ApiError'
     this.status = status
     this.body = body
+    this.retryAfter = retryAfter
   }
 
   /** err.is('TOKEN_EXPIRED') es mas legible que err.body.error === '...' */

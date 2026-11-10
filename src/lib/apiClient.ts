@@ -154,7 +154,9 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
   if (!res.ok) {
     const errBody = await safeJson(res)
-    throw new ApiError(res.status, errBody)
+    const retryAfterHeader = Number(res.headers.get('Retry-After'))
+    const retryAfter = Number.isFinite(retryAfterHeader) && retryAfterHeader >= 0 ? retryAfterHeader : null
+    throw new ApiError(res.status, errBody, res.headers.has('Retry-After') ? retryAfter : null)
   }
 
   if (res.status === 204) return undefined as T
